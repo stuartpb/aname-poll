@@ -3,12 +3,12 @@ var zahd = require('./lib/redis-scripts/zadd-hdel.js');
 var hshd = require('./lib/redis-scripts/hset-hdel.js');
 var hmz = require('./lib/redis-scripts/hmovez.js');
 var queryDomain = require('getaaaaarr');
-var equal = require('deep-equal');
+var equal = require('./lib/arrset.js').equal;
 
 module.exports = function dnsmonctor(cfg, cb) {
   // The function to process newly-retrieved records with (if any).
   var process = cfg.process;
-  
+
   var db = redis.createClient(cfg.redis.port, cfg.redis.hostname,
     {no_ready_check: true});
   if (cfg.redis.password) db.auth(cfg.redis.password);
