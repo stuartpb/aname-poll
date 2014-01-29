@@ -20,9 +20,9 @@
     "url": "https://github.com/stuartpb/aname-poll/issues"
   },
   "dependencies": {
-    "native-dns": "~0.4.1",
     "redis": "~0.10.0",
     "hiredis": "~0.1.16",
-    "deep-equal": "~0.1.2"
+    "deep-equal": "~0.1.2",
+    "getaaaaarr": "~0.2.0"
   }
 }

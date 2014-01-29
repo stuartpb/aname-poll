@@ -2,7 +2,7 @@ var scoreRange = require('./lib/redis-scripts/score-range-to-hash.js');
 var zahd = require('./lib/redis-scripts/zadd-hdel.js');
 var hshd = require('./lib/redis-scripts/hset-hdel.js');
 var hmz = require('./lib/redis-scripts/hmovez.js');
-var queryDomain = require('./lib/query-domain.js');
+var queryDomain = require('getaaaaarr');
 var equal = require('deep-equal');
 
 module.exports = function dnsmonctor(cfg, cb) {
@@ -18,32 +18,31 @@ module.exports = function dnsmonctor(cfg, cb) {
 
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
-    
-    // Get the shortest TTL in the records (in MS)
-    var expiration = Infinity;
-    for (var i = 0; i < res.length; i ++) {
-      expiration = Math.min(expiration, records[i].ttl * 1000);
-    }
-    
-    // Add that to now to get the time these records expire
-    expiration = expiration += Date.now();
+
+    // Expire these records in 5 minutes
+    // TODO: Actually get the record TTLs when querying-
+    // right now we CBA to do that due to the shortcomings of dns.resolve
+    // and various issues involved in implementing our own resolver
+    // using native-dns
+    expiration = Date.now() + 300000;
+    records = records.map(function(record){record.ttl = 300; return record});
 
     // If we process new records
     if (process) {
-      
+
       // Set the new records and get the old ones
       db.getset('records:' + domain, JSON.stringify(records),
         function(err, old) { if (err) return cb(err);
 
         // If the old ones aren't the same as the new ones
         if (!equal(records,JSON.parse(oldrecords))) {
-          
+
           // Mark this domain as processing
           db.eval(hshd,2,'processing_domains','querying_domains',
             domain, expiration, function(err, res) {
               if (err) return cb(err);
-              
-              // Process the new records 
+
+              // Process the new records
               process(domain,records,finishProcessing.bind(null, domain));
             });
         // If the old ones were the same,
@@ -60,7 +59,7 @@ module.exports = function dnsmonctor(cfg, cb) {
       db.eval(zahd,2,'expiring_domains','querying_domains',
         expiration, domain, next);
     }
-    
+
     // Mark that we've finished processing records
     function finishProcessing(domain, err) {
       if (err) return cb(err);
