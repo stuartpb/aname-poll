@@ -1,3 +1,4 @@
+var redis = require('redis');
 var scoreRange = require('./lib/redis-scripts/score-range-to-hash.js');
 var zahd = require('./lib/redis-scripts/zadd-hdel.js');
 var hshd = require('./lib/redis-scripts/hset-hdel.js');
@@ -14,7 +15,7 @@ module.exports = function dnsmonctor(cfg, cb) {
   if (cfg.redis.password) db.auth(cfg.redis.password);
 
   // Callback wrapper for final callbacks so as to not leak retvals
-  function next(err){if (err) return cb(err) else cb()};
+  function next(err){if (err) return cb(err); else cb();}
 
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
@@ -24,7 +25,7 @@ module.exports = function dnsmonctor(cfg, cb) {
     // right now we CBA to do that due to the shortcomings of dns.resolve
     // and various issues involved in implementing our own resolver
     // using native-dns
-    expiration = Date.now() + 300000;
+    var expiration = Date.now() + 300000;
     records = records.map(function(record){record.ttl = 300; return record});
 
     // If we process new records
@@ -32,7 +33,7 @@ module.exports = function dnsmonctor(cfg, cb) {
 
       // Set the new records and get the old ones
       db.getset('records:' + domain, JSON.stringify(records),
-        function(err, old) { if (err) return cb(err);
+        function(err, oldrecords) { if (err) return cb(err);
 
         // If the old ones aren't the same as the new ones
         if (!equal(records,JSON.parse(oldrecords))) {
@@ -48,7 +49,7 @@ module.exports = function dnsmonctor(cfg, cb) {
         // If the old ones were the same,
         // just advance as if we weren't processing
         } else completeQuery();
-      })
+      });
     } else {
       db.set('records:' + domain, JSON.stringify(records), completeQuery);
     }
@@ -76,5 +77,5 @@ module.exports = function dnsmonctor(cfg, cb) {
           queryDomain(res[i], finishQuerying.bind(null, res[i]));
         }
       });
-  }
+  };
 };
