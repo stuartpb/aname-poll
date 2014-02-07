@@ -1,14 +1,17 @@
 var redis = require('redis');
-var scoreRange = require('./lib/redis-scripts/score-range-to-hash.js');
-var zahd = require('./lib/redis-scripts/zadd-hdel.js');
-var hshd = require('./lib/redis-scripts/hset-hdel.js');
-var hmz = require('./lib/redis-scripts/hmovez.js');
+var scoreRange = require('./lib/redis-scripts/score-range-to-hash.js')();
+var zahd = require('./lib/redis-scripts/zadd-hdel.js')();
+var hshd = require('./lib/redis-scripts/hset-hdel.js')();
+var hmz = require('./lib/redis-scripts/hmovez.js')();
 var queryDomain = require('getaaaaarr');
 var equal = require('./lib/arrset.js').equal;
 
 module.exports = function dnsmonctor(cfg, cb) {
   // The function to process newly-retrieved records with (if any).
   var process = cfg.process;
+
+  // TTL in seconds to set for records
+  var ttl = cfg.ttl === 0 ? 0 : cfg.ttl || 300;
 
   var db = redis.createClient(cfg.redis.port, cfg.redis.hostname,
     {no_ready_check: true});
@@ -20,13 +23,9 @@ module.exports = function dnsmonctor(cfg, cb) {
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
 
-    // Expire these records in 5 minutes
-    // TODO: Actually get the record TTLs when querying-
-    // right now we CBA to do that due to the shortcomings of dns.resolve
-    // and various issues involved in implementing our own resolver
-    // using native-dns
-    var expiration = Date.now() + 300000;
-    records = records.map(function(record){record.ttl = 300; return record});
+    // Set TTLS on the records
+    var expiration = Date.now() + ttl * 1000;
+    records = records.map(function(record){record.ttl = ttl; return record});
 
     // If we process new records
     if (process) {
