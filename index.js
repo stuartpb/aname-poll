@@ -9,6 +9,8 @@ var equal = require('./lib/arrset.js').equal;
 module.exports = function dnsmonctor(cfg, cb) {
   // The function to process newly-retrieved records with (if any).
   var process = cfg.process;
+  // The function to process record retrival failures with (if any).
+  var notfoundHandler = cfg.notfound;
 
   // TTL in seconds to set for records
   var ttl = cfg.ttl === 0 ? 0 : cfg.ttl || 300;
@@ -22,10 +24,35 @@ module.exports = function dnsmonctor(cfg, cb) {
 
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
-    if (err) return cb(err);
-
-    // Set TTLS on the records
+    // Set time until our next query
     var expiration = Date.now() + ttl * 1000;
+
+    // If there was an error querying the domain
+    if (err) {
+      // If the domain was not found
+      if (err.code == 'ENOTFOUND') {
+        // If we have a function to handle missing domains
+        if (notfoundHandler) {
+          // Call it with a callback that lets it decide how to proceed
+          notfoundHandler(domain, function(remove) {
+            // Remove the domain from circulation if requested
+            if (remove) db.hdel('querying_domains', domain, next);
+            // Otherwise, keep it in circulation
+            else completeQuery();
+          });
+        // If there's no function to handle missing domains
+        } else {
+          // Just return the domain to the query queue
+          completeQuery();
+        }
+      // If it was some other kind of error
+      } else {
+        // Spit it up
+        return cb(err);
+      }
+    }
+
+    // Set TTLs on the records
     records = records.map(function(record){record.ttl = ttl; return record});
 
     // If we process new records
@@ -44,7 +71,7 @@ module.exports = function dnsmonctor(cfg, cb) {
               if (err) return cb(err);
 
               // Process the new records
-              process(domain,records,finishProcessing.bind(null, domain));
+              process(domain,records,finishProcessing);
             });
         // If the old ones were the same,
         // just advance as if we weren't processing
@@ -54,15 +81,15 @@ module.exports = function dnsmonctor(cfg, cb) {
       db.set('records:' + domain, JSON.stringify(records), completeQuery);
     }
 
-    // Mark that we've set the records and finish
-    function completeQuery(err, res) {
+    // Mark that we've set the records (if any) and finish
+    function completeQuery(err) {
       if (err) return cb(err);
       db.eval(zahd,2,'expiring_domains','querying_domains',
         expiration, domain, next);
     }
 
     // Mark that we've finished processing records
-    function finishProcessing(domain, err) {
+    function finishProcessing(err) {
       if (err) return cb(err);
       db.eval(hmz,2,'processing_domains','querying_domains', domain, next);
     }
