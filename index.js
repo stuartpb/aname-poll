@@ -22,7 +22,7 @@ module.exports = function dnsmonctor(cfg, cb) {
 
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
-    if (err) return next(err);
+    if (err) return cb(err);
 
     // Set TTLS on the records
     var expiration = Date.now() + ttl * 1000;
@@ -72,7 +72,7 @@ module.exports = function dnsmonctor(cfg, cb) {
     // Get all the domains whose records expired some time before now
     db.eval(scoreRange,2,'expiring_domains','querying_domains',
       '-inf', Date.now(), function (err, res) {
-        if (err) return next(err);
+        if (err) return cb(err);
         // Query each of these domains
         for (var i = 1; i < res.length; i += 2) {
           queryDomain(res[i], finishQuerying.bind(null, res[i]));
