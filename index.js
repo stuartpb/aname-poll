@@ -95,15 +95,22 @@ module.exports = function dnsmonctor(cfg, cb) {
     }
   }
 
-  return function() {
-    // Get all the domains whose records expired some time before now
-    db.eval(scoreRange,2,'expiring_domains','querying_domains',
-      '-inf', Date.now(), function (err, res) {
-        if (err) return cb(err);
-        // Query each of these domains
-        for (var i = 1; i < res.length; i += 2) {
-          queryDomain(res[i], finishQuerying.bind(null, res[i]));
-        }
-      });
-  };
+  // The interface interval function we return
+  function iface(end) {
+    if (end) {
+      return db.quit(next);
+    } else {
+      // Get all the domains whose records expired some time before now
+      db.eval(scoreRange,2,'expiring_domains','querying_domains',
+        '-inf', Date.now(), function (err, res) {
+          if (err) return cb(err);
+          // Query each of these domains
+          for (var i = 1; i < res.length; i += 2) {
+            queryDomain(res[i], finishQuerying.bind(null, res[i]));
+          }
+        });
+      return iface;
+    }
+  }
+  return iface;
 };
