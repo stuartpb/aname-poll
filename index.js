@@ -105,7 +105,7 @@ module.exports = function dnsmonctor(cfg, cb) {
         '-inf', Date.now(), function (err, res) {
           if (err) return cb(err);
           // Query each of these domains
-          for (var i = 1; i < res.length; i += 2) {
+          for (var i = 0; i < res.length; i += 2) {
             queryDomain(res[i], finishQuerying.bind(null, res[i]));
           }
         });
