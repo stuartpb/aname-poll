@@ -63,7 +63,7 @@ module.exports = function dnsmonctor(cfg, cb) {
         function(err, oldrecords) { if (err) return cb(err);
 
         // If the old ones aren't the same as the new ones
-        if (!equal(records,JSON.parse(oldrecords))) {
+        if (!(oldrecords && equal(records,JSON.parse(oldrecords)))) {
 
           // Mark this domain as processing
           db.eval(hshd,2,'processing_domains','querying_domains',
