@@ -34,16 +34,16 @@ module.exports = function dnsmonctor(cfg, cb) {
         // If we have a function to handle missing domains
         if (notfoundHandler) {
           // Call it with a callback that lets it decide how to proceed
-          notfoundHandler(domain, function(remove) {
+          return notfoundHandler(domain, function(remove) {
             // Remove the domain from circulation if requested
-            if (remove) db.hdel('querying_domains', domain, next);
+            if (remove) return db.hdel('querying_domains', domain, next);
             // Otherwise, keep it in circulation
             else completeQuery();
           });
         // If there's no function to handle missing domains
         } else {
           // Just return the domain to the query queue
-          completeQuery();
+          return completeQuery();
         }
       // If it was some other kind of error
       } else {
