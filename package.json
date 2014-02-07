@@ -1,6 +1,6 @@
 {
   "name": "aname-poll",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Node module that updates A/AAAA records for domains in Redis",
   "main": "index.js",
   "scripts": {
