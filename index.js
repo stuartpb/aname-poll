@@ -63,10 +63,10 @@ module.exports = function dnsmonctor(cfg, cb) {
         function(err, oldrecords) { if (err) return cb(err);
 
         // If the old ones aren't the same as the new ones
-        if (!(oldrecords && equal(records,JSON.parse(oldrecords)))) {
+        if (!(oldrecords && equal(records, JSON.parse(oldrecords)))) {
 
           // Mark this domain as processing
-          db.eval(hshd,2,'processing_domains','querying_domains',
+          db.eval(hshd, 2, 'processing_domains', 'querying_domains',
             domain, expiration, function(err, res) {
               if (err) return cb(err);
 
@@ -84,14 +84,15 @@ module.exports = function dnsmonctor(cfg, cb) {
     // Mark that we've set the records (if any) and finish
     function completeQuery(err) {
       if (err) return cb(err);
-      db.eval(zahd,2,'expiring_domains','querying_domains',
+      db.eval(zahd, 2, 'expiring_domains', 'querying_domains',
         expiration, domain, next);
     }
 
     // Mark that we've finished processing records
     function finishProcessing(err) {
       if (err) return cb(err);
-      db.eval(hmz,2,'processing_domains','querying_domains', domain, next);
+      db.eval(hmz, 2, 'processing_domains', 'expiring_domains',
+        domain, next);
     }
   }
 
