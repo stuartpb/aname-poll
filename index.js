@@ -22,6 +22,7 @@ module.exports = function dnsmonctor(cfg, cb) {
 
   // Handle the record response from a query
   function finishQuerying(domain, err, records) {
+    if (err) return next(err);
 
     // Set TTLS on the records
     var expiration = Date.now() + ttl * 1000;
